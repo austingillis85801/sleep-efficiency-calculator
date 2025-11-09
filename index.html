@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Better Sleep Solutions — Sleep Efficiency Calculator</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<style>
+  :root{
+    --page:#fcfdfd;               /* near-white page */
+    --panel:#f1f3f5;              /* light gray for notes/panels */
+    --panel-line:#e5e9ef;
+    --headerBg:#d7dee7;           /* ~10% more saturated/darker than before */
+    --ink:#1f2830;
+    --ink-60:#5b6a74;
+    --ink-header:#171c21;         /* very dark gray for header text */
+    --teal:#0c6675;               /* brand teal for buttons */
+    --chip:#eef2f5;
+    --chip-ink:#214557;
+    --shadow:0 14px 34px rgba(10,40,55,.10), 0 3px 8px rgba(10,40,55,.06);
+    --radius:16px;
+  }
+  *,*:before,*:after{box-sizing:border-box}
+  html,body{margin:0;background:var(--page);color:var(--ink);font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  a{color:var(--teal);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* Header — taller, more contrast, dark-gray text */
+  .topbar{
+    position:fixed; inset:0 0 auto 0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:26px 26px; transition:padding .25s ease;
+    background:var(--headerBg); color:var(--ink-header);
+    border-bottom:1px solid var(--panel-line);
+    box-shadow:0 10px 22px rgba(0,0,0,.09);
+  }
+  .topbar.scrolled{ padding:18px 22px }
+  .brand{display:flex;align-items:center;gap:14px;font-weight:800}
+  .brand img{width:64px;height:64px;object-fit:contain;border-radius:12px;background:#0d5f6d12}
+  .brand span{color:var(--ink-header);font-size:1.05rem}
+  .contact{text-align:right;font-size:.97rem;line-height:1.2}
+  .contact strong,.contact span{color:var(--ink-header)}
+
+  .wrap{max-width:980px;margin:auto;padding:136px 18px 84px}
+
+  /* Cards & form */
+  .card{
+    background:#fff; border:1px solid var(--panel-line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:18px;
+  }
+  h1{color:#1f2830;margin:.2rem 0 0}
+  .card h2{margin:2px 0 12px;color:#2b4259;font-size:1.12rem}
+  .help{color:var(--ink-60);font-size:.95rem}
+
+  .fields{display:grid;grid-template-columns:1fr;gap:12px}
+  label{font-weight:650;color:var(--ink);font-size:.95rem}
+  .hint{display:block;font-weight:400;font-size:.83rem;color:var(--ink-60)}
+  input[type="time"],input[type="number"]{
+    width:100%;padding:11px 12px;border:1px solid var(--panel-line);border-radius:12px;background:#fff;outline:none;
+    font:inherit;color:var(--ink);
+  }
+  input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(12,102,117,.15)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer;background:var(--teal);color:#fff}
+  .btn.secondary{background:var(--teal)}
+  .btn.ghost{background:transparent;color:var(--teal);border:2px solid var(--teal)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+
+  .note{background:var(--panel);border-left:4px solid var(--teal);padding:10px 12px;border-radius:12px;margin-top:10px;color:#3a4a58}
+
+  /* Snapshot */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){ .stats-grid{grid-template-columns:1fr} }
+  .stat{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center;margin:0}
+  .chip{background:var(--chip);color:var(--chip-ink);font-weight:800;border-radius:10px;padding:10px 12px;text-align:center}
+  .big{font-size:1.6rem}
+  .meter{height:18px;border-radius:999px;background:linear-gradient(90deg,#f4cfd0 0 25%, #f7e8bd 25% 45%, #e6eef6 45% 85%, #c7daf3 85% 100%);position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,.15)}
+  .needle{position:absolute;top:-6px;width:2px;height:30px;background:#0e2a3a;left:0;transform:translateX(-1px)}
+  .legend{display:flex;justify-content:space-between;font-size:.8rem;color:#586574;margin-top:6px}
+
+  .cbti-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:720px){ .cbti-grid{grid-template-columns:1fr} }
+  .cbti-item{border:1px solid var(--panel-line);border-radius:16px;padding:12px;background:#fff;box-shadow:var(--shadow)}
+  .cbti-item h4{margin:0 0 6px;color:#2b4259}
+  .muted{color:#5f6e7c}
+
+  footer{margin-top:32px;color:#425468}
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="topbar" id="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="Better Sleep Solutions logo" />
+      <span>Better Sleep Solutions</span>
+    </div>
+    <div class="contact">
+      <div><strong>Maegan Gillis, AGACNP</strong></div>
+      <span>Phone: 801-408-1625</span>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <section class="hero"><h1>Sleep Efficiency Calculator</h1></section>
+
+    <!-- Calculator -->
+    <section id="calculator" class="card" aria-labelledby="calc-title">
+      <h2 id="calc-title">Enter last night’s sleep (or a typical night)</h2>
+
+      <div class="fields" role="group" aria-label="Sleep inputs">
+        <div><label for="inBed">What time did you get into bed?</label><input id="inBed" type="time" required></div>
+        <div><label for="goToSleep">What time did you try to go to sleep? <span class="hint">(optional)</span></label><input id="goToSleep" type="time"></div>
+        <div><label for="sleepLatency">How long did it take to fall asleep? <span class="hint">(minutes)</span></label><input id="sleepLatency" type="number" inputmode="numeric" min="0" value="20"></div>
+        <div><label for="awakenings">How many times did you wake up (not counting final awakening)?</label><input id="awakenings" type="number" inputmode="numeric" min="0" value="1"></div>
+        <div><label for="waso">Total time of awakenings <span class="hint">(minutes)</span></label><input id="waso" type="number" inputmode="numeric" min="0" value="30"></div>
+        <div><label for="finalAwake">Time of your final awakening</label><input id="finalAwake" type="time"></div>
+        <div><label for="outBed">What time did you get out of bed for the day?</label><input id="outBed" type="time" required></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="calcBtn">Calculate</button>
+        <button class="btn ghost" id="clearBtn">Clear</button>
+        <button class="btn secondary" id="pdfBtn" disabled>Download PDF Report</button>
+      </div>
+
+      <div class="note">
+        <strong>How we calculate.</strong> Sleep efficiency = time asleep / time in bed.
+        Awake time in bed = time before trying to sleep + sleep latency + total awakening minutes + minutes from final awakening to getting out of bed.
+      </div>
+    </section>
+
+    <!-- Snapshot -->
+    <section id="summarySection" class="card" style="margin-top:16px" aria-live="polite" aria-labelledby="sum-title">
+      <h2 id="sum-title">Your Sleep Snapshot</h2>
+      <div id="summaryEmpty" class="help">Fill in your times and click <strong>Calculate</strong> to see your results.</div>
+
+      <div id="summary" hidden>
+        <div class="stats-grid">
+          <div class="stat"><div class="chip">Sleep window</div><div><span id="sleepWindowMins" class="big"></span> min (<span id="sleepWindowHrs"></span> hrs)</div></div>
+          <div class="stat"><div class="chip">Time awake</div><div><span id="awakeMins" class="big"></span> min</div></div>
+          <div class="stat"><div class="chip">Time asleep</div><div><span id="asleepMins" class="big"></span> min</div></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--panel-line);margin:10px 0 10px">
+
+        <div class="stat">
+          <div class="chip">Sleep efficiency</div>
+          <div>
+            <div class="big" id="effPct" style="font-size:1.9rem"></div>
+            <div class="meter" aria-hidden="true"><div id="needle" class="needle"></div></div>
+            <div class="legend"><span>0%</span><span>70%</span><span>85%</span><span>95%</span><span>100%</span></div>
+            <div id="effText" class="help" style="margin-top:6px"></div>
+          </div>
+        </div>
+
+        <div id="scheduleBox" class="note" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <!-- CBT-I -->
+    <section id="cbti" class="card" style="margin-top:16px">
+      <h2>CBT-I strategies that may help</h2>
+      <div class="cbti-grid" id="cbtiList"></div>
+    </section>
+
+    <footer id="footer">
+      <div><strong>Contact</strong><br>Maegan Gillis, AGACNP — Phone: 801-408-1625</div>
+      <div class="muted" style="margin-top:8px">This tool is educational and does not replace care from your healthcare provider.</div>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <script>
+    /* Header micro-shrink */
+    const topbar = document.getElementById('topbar');
+    const setBar = () => { if (window.scrollY > 8) topbar.classList.add('scrolled'); else topbar.classList.remove('scrolled'); };
+    setBar(); window.addEventListener('scroll', setBar, {passive:true});
+
+    /* Utilities */
+    const $ = sel => document.querySelector(sel);
+    const pad = n => n.toString().padStart(2,'0');
+    function timeToMins(t){ if(!t) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
+    function minsToClock(mins){
+      if(mins==null) return '-';
+      mins=((mins%1440)+1440)%1440;
+      let h=Math.floor(mins/60), m=mins%60; const ampm=h>=12?'PM':'AM'; h=h%12 || 12; return `${h}:${pad(m)} ${ampm}`;
+    }
+    function spanMins(t1,t2){ if(t1==null||t2==null) return 0; let diff=t2-t1; if(diff<0) diff+=1440; return diff; }
+
+    /* Calculation */
+    const state = {};
+    $('#calcBtn').addEventListener('click', () => {
+      const inBed = timeToMins($('#inBed').value);
+      const goToSleep = timeToMins($('#goToSleep').value || null);
+      const latency = Math.max(0, Number($('#sleepLatency').value || 0));
+      const wakes = Math.max(0, Number($('#awakenings').value || 0));
+      const waso = Math.max(0, Number($('#waso').value || 0));
+      const finalAwake = timeToMins($('#finalAwake').value);
+      const outBed = timeToMins($('#outBed').value);
+
+      if(inBed==null || outBed==null){ alert('Please enter at least "in bed" and "out of bed" times.'); return; }
+
+      const preBedWake = goToSleep!=null ? spanMins(inBed, goToSleep) : 0;
+      const finalA = (finalAwake==null) ? ((outBed-10+1440)%1440) : finalAwake;
+
+      const sleepWindow = spanMins(inBed, outBed);
+      const afterFinal = spanMins(finalA, outBed);
+      const awake = preBedWake + latency + waso + afterFinal;
+      const asleep = Math.max(0, sleepWindow - Math.max(0, awake));
+      let eff = sleepWindow>0 ? (asleep/sleepWindow)*100 : 0;
+      eff = Math.max(0, Math.min(100, eff));
+
+      let cat='', tip='', adj = 0;
+      if(eff >= 95){ cat='Very high'; tip='If total sleep feels short, move bedtime 30 min earlier.'; adj = +30; }
+      else if(eff >= 90){ cat='Great'; tip='If rested, try bedtime ~15 min earlier to allow a bit more sleep.'; adj = +15; }
+      else if(eff >= 85){ cat='Good'; tip='Sleeping well most of the time in bed. Keep a steady routine.'; adj = 0; }
+      else if(eff >= 70){ cat='Some opportunity to improve'; tip='Tighten routine, use stimulus control, and match time in bed to sleep need.'; adj = -15; }
+      else { cat='Lots of opportunity to improve'; tip='Consider a structured time-in-bed plan (sleep restriction) with guidance.'; adj = -15; }
+
+      const tibCurrent = sleepWindow;
+      const tibSuggested = eff < 85 ? Math.max(360, asleep + 30) : tibCurrent + adj;  // >= 6 h
+      const bedtimeSuggested = (outBed - tibSuggested + 1440) % 1440;
+
+      $('#needle').style.left = `calc(${Math.max(0, Math.min(100, eff))}% - 1px)`;
+      $('#summaryEmpty').hidden = true;
+      $('#summary').hidden = false;
+      $('#sleepWindowMins').textContent = sleepWindow.toFixed(0);
+      $('#sleepWindowHrs').textContent = (sleepWindow/60).toFixed(1);
+      $('#awakeMins').textContent = awake.toFixed(0);
+      $('#asleepMins').textContent = asleep.toFixed(0);
+      $('#effPct').textContent = `${eff.toFixed(0)}%`;
+      $('#effText').textContent = `${cat}. ${tip}`;
+      $('#scheduleBox').innerHTML =
+        `<strong>Sleep schedule idea:</strong> For this week, target <strong>time in bed ~ ${(tibSuggested/60).toFixed(1)} h</strong>.<br>
+         With wake-up around <strong>${minsToClock(outBed)}</strong>, try <strong>bedtime ~ ${minsToClock(bedtimeSuggested)}</strong>.<br>
+         <span class="muted">Adjust by 15–30 min per week based on sleepiness and safety. Do not restrict below 6 h without guidance.</span>`;
+
+      const blocks = [];
+      const add = (t,b)=>blocks.push(`<div class="cbti-item"><h4>${t}</h4><div class="muted">${b}</div></div>`);
+      if(eff < 85){
+        add('Stimulus Control','Only go to bed when sleepy; if awake >15–20 min, get up for a calm, dim-light activity and return when sleepy. No clock-watching; keep bed for sleep/intimacy only.');
+        add('Time-in-Bed (Sleep Restriction)','Match time in bed to average sleep + ~30 min (min 6 h). Increase by 15–30 min once efficiency >85% for a week.');
+        add('Consistent Wake Time','Fix a wake-up time daily to strengthen your body clock.');
+        add('Wind-Down Routine','Do 30–60 min of relaxing, low-stimulus activities in dim light.');
+      } else {
+        add('Keep What Works','Stable schedule, morning light, and a brief wind-down. Protect them.');
+      }
+      if(waso >= 30 || wakes >= 2){ add('Night-Waking Plan','Avoid the clock; use calm breathing. If not sleepy after ~15–20 min, get up and repeat wind-down before returning.'); }
+      add('Sleep Hygiene (Targeted)','Limit caffeine after early afternoon, moderate alcohol, cool/dark/quiet room, exercise earlier in the day.');
+      add('Thoughts & Worry','Schedule “worry time” earlier; jot concerns and next steps. At night, label thoughts and return to a simple anchor.');
+      $('#cbtiList').innerHTML = blocks.join('');
+
+      Object.assign(state, { inBed, goToSleep, latency, wakes, waso, finalA: finalA, outBed,
+                             sleepWindow, awake, asleep, eff, tibSuggested, bedtimeSuggested });
+      $('#pdfBtn').disabled = false;
+
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(!reduced) document.getElementById('summarySection').scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    $('#clearBtn').addEventListener('click', ()=>{
+      document.querySelectorAll('input').forEach(i=> i.value = '');
+      $('#summary').hidden = true;
+      $('#summaryEmpty').hidden = false;
+      $('#cbtiList').innerHTML = '';
+      $('#pdfBtn').disabled = true;
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+
+    /* Load logo for PDF as data URL */
+    async function loadLogoDataURL(){
+      try{
+        const res = await fetch('logo.png', {cache:'no-cache'});
+        if(!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const reader = new FileReader();
+        return await new Promise((resolve)=>{
+          reader.onload = ()=> resolve(reader.result);
+          reader.onerror = ()=> resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      }catch(e){ return null; }
+    }
+
+    /* PDF with bigger logo, darker header, dark header text */
+    document.getElementById('pdfBtn').addEventListener('click', async ()=>{
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:'pt', format:'a4'});
+      doc.setLineHeightFactor(1.35);
+
+      const HEADER = {r:215,g:222,b:231}; // matches --headerBg vibe
+      const PANEL  = {r:241,g:243,b:245};
+      const LINE   = {r:229,g:233,b:239};
+      const INK    = {r:23,g:28,b:33};     // very dark gray for header text
+      const BODY   = {r:31,g:40,b:48};
+      const TEAL   = {r:12,g:102,b:117};
+
+      // Taller header for bigger logo
+      doc.setFillColor(HEADER.r,HEADER.g,HEADER.b);
+      doc.rect(0,0,595.28,120,'F');
+
+      const logoData = await loadLogoDataURL();
+      if(logoData){ doc.addImage(logoData,'PNG',36,26,78,78); }
+      else{ doc.setDrawColor(TEAL.r,TEAL.g,TEAL.b); doc.setFillColor(255,255,255); doc.roundedRect(36,32,74,74,12,12,'FD'); }
+
+      doc.setTextColor(INK.r,INK.g,INK.b);
+      doc.setFont('helvetica','bold'); doc.setFontSize(20);
+      doc.text('Better Sleep Solutions', 128, 58);
+      doc.setFont('helvetica','normal'); doc.setFontSize(11);
+      doc.text(`Sleep Efficiency Report — ${new Date().toLocaleString()}`, 128, 80);
+
+      let y = 140;
+      function section(title){
+        doc.setFillColor(PANEL.r,PANEL.g,PANEL.b);
+        doc.setDrawColor(LINE.r,LINE.g,LINE.b);
+        doc.roundedRect(28,y-12,539,30,6,6,'FD');
+        doc.setTextColor(TEAL.r,TEAL.g,TEAL.b);
+        doc.setFont('helvetica','bold'); doc.setFontSize(13);
+        doc.text(title, 36, y+7);
+        doc.setTextColor(BODY.r,BODY.g,BODY.b); doc.setFont('helvetica','normal'); doc.setFontSize(11);
+        y += 38;
+      }
+
+      // Inputs
+      section('Your Inputs');
+      const rows = [
+        ['Got into bed', minsToClock(state.inBed)],
+        ['Tried to sleep (optional)', minsToClock(state.goToSleep)],
+        ['Sleep latency (min)', String(state.latency ?? '-')],
+        ['Awakenings (#)', String(state.wakes ?? '-')],
+        ['Awakenings total (min)', String(state.waso ?? '-')],
+        ['Final awakening', minsToClock(state.finalA)],
+        ['Out of bed', minsToClock(state.outBed)],
+      ];
+      rows.forEach(([k,v])=>{
+        doc.text(`${k}:`, 36, y);
+        doc.setTextColor(85,96,110); doc.text(v, 240, y);
+        doc.setTextColor(BODY.r,BODY.g,BODY.b); y += 22;
+      });
+
+      // Results
+      y += 8; section('Results');
+      doc.text(`Time in bed: ${(state.sleepWindow/60).toFixed(1)} h (${state.sleepWindow.toFixed(0)} min)`, 36, y); y+=22;
+      doc.text(`Time awake: ${state.awake.toFixed(0)} min`, 36, y); y+=22;
+      doc.text(`Time asleep: ${state.asleep.toFixed(0)} min`, 36, y); y+=28;
+      doc.setFontSize(22); doc.setTextColor(TEAL.r,TEAL.g,TEAL.b); doc.setFont('helvetica','bold');
+      doc.text(`Sleep efficiency: ${state.eff.toFixed(0)}%`, 36, y); y+=38;
+      doc.setFont('helvetica','normal'); doc.setTextColor(BODY.r,BODY.g,BODY.b); doc.setFontSize(11);
+
+      // Schedule Suggestion
+      section('Schedule Suggestion');
+      const ss = [
+        `Try time in bed about ${(state.tibSuggested/60).toFixed(1)} hours this week.`,
+        `If you plan to get up around ${minsToClock(state.outBed)}, try bedtime about ${minsToClock(state.bedtimeSuggested)}.`,
+        'Adjust by 15-30 minutes per week based on sleepiness and safety. Do not restrict below 6 hours without guidance.'
+      ];
+      ss.forEach(t=>{ const s = doc.splitTextToSize(t, 523); doc.text(s, 36, y); y += 26; });
+      y += 20;
+
+      // Explanation
+      section('What does sleep efficiency mean?');
+      const expl = 'Sleep efficiency is the percentage of time in bed actually spent asleep. It is calculated as (time asleep / time in bed) x 100. Many CBT-I programs aim for 85-90 percent or higher. If your efficiency is low, reducing awake time in bed (using stimulus control and matching time in bed to sleep need) usually helps.';
+      doc.text(doc.splitTextToSize(expl, 523), 36, y);
+
+      // Footer
+      doc.setDrawColor(LINE.r,LINE.g,LINE.b); doc.line(36, 780, 559, 780);
+      doc.setFontSize(9); doc.setTextColor(99,110,123);
+      doc.text('This report is educational and not medical advice. © Better Sleep Solutions', 36, 796);
+
+      doc.save('Better-Sleep-Solutions—Sleep-Efficiency.pdf');
+    });
+  </script>
+</body>
+</html>
